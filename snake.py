@@ -1,130 +1,163 @@
+from enum import Enum
 import pygame
 import random
+from collections import namedtuple
+import numpy as np
 
 pygame.init()
 
-white = (255, 255, 255)
-yellow = (255, 255, 102)
-black = (40, 40, 40)
-red = (213, 50, 80)
-green = (0, 255, 0)
-blue = (50, 153, 213)
 
-dis_width = 600
-dis_height = 400
-
-dis = pygame.display.set_mode((dis_width, dis_height))
-pygame.display.set_caption('Kodutöö 7 snake game')
-
-clock = pygame.time.Clock()
-
-snake_block = 10
-snake_speed = 10
-
-font_style = pygame.font.SysFont("bahnschrift", 25)
-
-def score_keeper(score):
-    value = font_style.render("Your Score: " + str(score), True, yellow)
-    dis.blit(value, [0, 0])
+class Direction(Enum):
+    LEFT = 1
+    RIGHT = 2
+    UP = 3
+    DOWN = 4
 
 
-def render_snake(snake_block, snake_list):
-    for x in snake_list:
-        pygame.draw.rect(dis, white, [x[0], x[1], snake_block, snake_block])
+class Colors(Enum):
+    WHITE = (255, 255, 255)
+    YELLOW = (255, 255, 102)
+    BLACK = (40, 40, 40)
+    RED = (213, 50, 80)
+    GREEN = (0, 255, 0)
+    BLUE = (50, 153, 213)
 
 
-def message(msg, color):
-    mesg = font_style.render(msg, True, color)
-    dis.blit(mesg, [dis_width / 6, dis_height / 3])
+snake_size = 10
+font = pygame.font.SysFont()
+snake_speed = 20
+
+coordinate = namedtuple('Point', 'x_cor, y_cor')
 
 
-def gameLoop():
-    game_over = False
-    game_close = False
+class Snake:
 
-    x_coordinate = dis_width / 2
-    y_coordinate = dis_height / 2
+    def __init__(self, width=600, height=400):
+        self.width = width
+        self.height = height
 
-    x_speed = 0
-    y_speed = 0
+        # render display
+        self.display = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption("Kodutöö 7")
+        self.clock = pygame.time.Clock()
+        self.reset()
 
-    snake_list = []
-    length_of_snake = 1
+    def reset(self):
+        # restart game state
+        self.direction = Direction.UP
 
-    foodx = round(random.randrange(0, dis_width - snake_block) / 10.0) * 10.0
-    foody = round(random.randrange(0, dis_height - snake_block) / 10.0) * 10.0
+        # Reset all variables
+        self.head = coordinate(self.width / 2, self.height / 2)
+        self.snake = [self.head]
 
-    while not game_over:
+        self.score = 0
+        self.food = None
+        self._place_food()
+        self.current_frame = 0
 
-        while game_close == True:
-            dis.fill(blue)
-            message("Kaotasid! Vajuta A klahvi, et uuesti mängida ning Q klahvi, et mäng sulgeda", red)
-            score_keeper(length_of_snake - 1)
-            pygame.display.update()
+    def _place_food(self):
+        foodx = round(random.randrange(0, self.width - snake_size) / snake_size) * snake_size
+        foody = round(random.randrange(0, self.height - snake_size) / snake_size) * snake_size
+        self.food = coordinate(foodx, foody)
 
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_q:
-                        game_over = True
-                        game_close = False
-                    if event.key == pygame.K_a:
-                        gameLoop()
+        # If the place where food is placed is the same as the head,
+        # then generate new coordinates for the food
+        if self.food in self.snake:
+            self._place_food()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                game_over = True
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    x_speed = -snake_block
-                    y_speed = 0
-                elif event.key == pygame.K_RIGHT:
-                    x_speed = snake_block
-                    y_speed = 0
-                elif event.key == pygame.K_UP:
-                    y_speed = -snake_block
-                    x_speed = 0
-                elif event.key == pygame.K_DOWN:
-                    y_speed = snake_block
-                    x_speed = 0
+    def is_death(self):
+        currentHead = self.head
 
-        #Check if the snake has hit the wall.
-        if x_coordinate >= dis_width or x_coordinate < 0 or y_coordinate >= dis_height or y_coordinate < 0:
-            game_close = True
-        x_coordinate += x_speed
-        y_coordinate += y_speed
-        dis.fill(black)
-        pygame.draw.rect(dis, green, [foodx, foody, snake_block, snake_block])
-        snake_head = []
-        snake_head.append(x_coordinate)
-        snake_head.append(y_coordinate)
-        snake_list.append(snake_head)
+        # Goes into the wall
+        if currentHead.x_cor > self.width - snake_size or currentHead.x_cor < 0 or currentHead.y_cor < 0 or currentHead.y_cor > self.height - snake_size:
+            return True
 
-        #Hold only the snake boxes in the list that are needed.
-        if len(snake_list) > length_of_snake:
-            del snake_list[0]
+        # Goes into itself
+        if currentHead in self.snake[1:]:
+            return True
 
+        return False
 
-        #Check if snake bumps into itself
-        for x in snake_list[:-1]:
-            if x == snake_head:
-                game_close = True
+    def _move(self, action):
+        # since we cant turn the snake around, then the only options for the snake
+        # to do at once is to either turn left, right or go straight
+        # the possible actions are [straight, left, right], so
+        # [1, 0, 0] is straight, [0,1,0] is left, [0, 0, 1] is right
 
-        render_snake(snake_block, snake_list)
-        score_keeper(length_of_snake - 1)
+        movements = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT]
+        currentIdx = movements.index(self.direction)
 
-        pygame.display.update()
+        if np.array_equal(action, [1, 0, 0]):
+            # if we want to go straight, then no change
+            new_direction = movements[currentIdx]
+        elif np.array_equal(action, [0, 1, 0]):
+            # we want to go left
+            next_idx = (currentIdx + 1) % 4
+            new_direction = movements[next_idx]
+        else:  # [0, 0, 1]
+            next_idx = (currentIdx - 1) % 4
+            new_direction = movements[next_idx]
 
-        #If on top of food, then eat.
-        if x_coordinate == foodx and y_coordinate == foody:
-            foodx = round(random.randrange(0, dis_width - snake_block) / 10.0) * 10.0
-            foody = round(random.randrange(0, dis_height - snake_block) / 10.0) * 10.0
-            length_of_snake += 1
+        self.direction = new_direction
 
-        #Clock makes the game run slower, otherwise it would be impossible to play.
-        clock.tick(snake_speed)
+        headX = self.head.x_cor
+        headY = self.head.y_cor
 
-    pygame.quit()
-    quit()
+        if self.direction == Direction.UP:
+            headY -= snake_size
+        elif self.direction == Direction.DOWN:
+            headY += snake_size
+        elif self.direction == Direction.LEFT:
+            headX -= snake_size
+        elif self.direction == Direction.RIGHT:
+            headX += snake_size
+
+        self.head = coordinate(headX, headY)
 
 
-gameLoop()
+    def _refresh_ui(self):
+        self.display.fill(Colors.BLACK)
+
+        for coordinate in self.snake:
+            pygame.draw.rect(self.display, Colors.GREEN, pygame.Rect(coordinate.x_cor, coordinate.y_cor, snake_size, snake_size))
+
+        pygame.draw.rect(self.display, Colors.BLUE, pygame.Rect(self.food.x_cor, self.food.y_cor, snake_size, snake_size))
+
+        renderScore = font.render("Score: " + str(self.score), Colors.WHITE)
+
+        self.display.blit(renderScore, [0, 0])
+        pygame.display.flip()
+
+    def play_step(self, action):
+        # move the snake 1 step forward
+        self.current_frame += 1
+
+        self._move(action)
+        self.snake.insert(0, self.head)
+
+        reward = 0
+        game_over = False
+
+        if self.is_death() or self.current_frame > 50 * len(self.snake):
+            #Check if dead or the game has already lasted for too long.
+
+            game_over = True
+            reward = -10
+
+            return reward, game_over, self.score
+
+        # Move or place food
+        if self.food == self.head:
+            self.score += 1
+            reward = 30
+            self._place_food()
+        else:
+            self.snake.pop()
+
+        self._refresh_ui()
+        self.clock.tick(snake_speed)
+
+        return reward, game_over, self.score
+
+
+
