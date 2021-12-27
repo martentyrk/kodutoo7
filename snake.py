@@ -3,8 +3,12 @@ import pygame
 import random
 from collections import namedtuple
 import numpy as np
+import math
 
 pygame.init()
+
+DEATH_REWARD = -10
+FOOD_REWARD = 30
 
 
 class Direction(Enum):
@@ -23,19 +27,18 @@ class Colors(Enum):
     BLUE = (50, 153, 213)
 
 
-snake_size = 10
-font = pygame.font.SysFont()
-snake_speed = 20
+SNAKE_SIZE = 10
+font = pygame.font.SysFont("Arial", 16)
+SNAKE_SPEED = 20
 
-coordinate = namedtuple('Point', 'x_cor, y_cor')
+coordinate = namedtuple("Point", "x_cor, y_cor")
 
 
 class Snake:
-
-    def __init__(self, width=600, height=400):
+    def __init__(self, generation, width=600, height=400):
         self.width = width
         self.height = height
-
+        self.generation = generation
         # render display
         self.display = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Kodutöö 7")
@@ -56,8 +59,14 @@ class Snake:
         self.current_frame = 0
 
     def _place_food(self):
-        foodx = round(random.randrange(0, self.width - snake_size) / snake_size) * snake_size
-        foody = round(random.randrange(0, self.height - snake_size) / snake_size) * snake_size
+        foodx = (
+            round(random.randrange(0, self.width - SNAKE_SIZE) / SNAKE_SIZE)
+            * SNAKE_SIZE
+        )
+        foody = (
+            round(random.randrange(0, self.height - SNAKE_SIZE) / SNAKE_SIZE)
+            * SNAKE_SIZE
+        )
         self.food = coordinate(foodx, foody)
 
         # If the place where food is placed is the same as the head,
@@ -65,15 +74,21 @@ class Snake:
         if self.food in self.snake:
             self._place_food()
 
-    def is_death(self):
-        currentHead = self.head
+    def is_death(self, point: coordinate = None):
+        if point is None:
+            point = self.head
 
         # Goes into the wall
-        if currentHead.x_cor > self.width - snake_size or currentHead.x_cor < 0 or currentHead.y_cor < 0 or currentHead.y_cor > self.height - snake_size:
+        if (
+            point.x_cor > self.width - SNAKE_SIZE
+            or point.x_cor < 0
+            or point.y_cor < 0
+            or point.y_cor > self.height - SNAKE_SIZE
+        ):
             return True
 
         # Goes into itself
-        if currentHead in self.snake[1:]:
+        if point in self.snake[1:]:
             return True
 
         return False
@@ -104,60 +119,85 @@ class Snake:
         headY = self.head.y_cor
 
         if self.direction == Direction.UP:
-            headY -= snake_size
+            headY -= SNAKE_SIZE
         elif self.direction == Direction.DOWN:
-            headY += snake_size
+            headY += SNAKE_SIZE
         elif self.direction == Direction.LEFT:
-            headX -= snake_size
+            headX -= SNAKE_SIZE
         elif self.direction == Direction.RIGHT:
-            headX += snake_size
+            headX += SNAKE_SIZE
 
         self.head = coordinate(headX, headY)
 
-
     def _refresh_ui(self):
-        self.display.fill(Colors.BLACK)
+        self.display.fill(Colors.BLACK.value)
 
         for coordinate in self.snake:
-            pygame.draw.rect(self.display, Colors.GREEN, pygame.Rect(coordinate.x_cor, coordinate.y_cor, snake_size, snake_size))
+            pygame.draw.rect(
+                self.display,
+                Colors.GREEN.value,
+                pygame.Rect(coordinate.x_cor, coordinate.y_cor, SNAKE_SIZE, SNAKE_SIZE),
+            )
 
-        pygame.draw.rect(self.display, Colors.BLUE, pygame.Rect(self.food.x_cor, self.food.y_cor, snake_size, snake_size))
+        pygame.draw.rect(
+            self.display,
+            Colors.BLUE.value,
+            pygame.Rect(self.food.x_cor, self.food.y_cor, SNAKE_SIZE, SNAKE_SIZE),
+        )
 
-        renderScore = font.render("Score: " + str(self.score), Colors.WHITE)
+        renderScore = font.render("Score: " + str(self.score), True, Colors.WHITE.value)
+        render_generation = font.render(
+            "Generation: " + str(self.generation), True, Colors.WHITE.value
+        )
 
         self.display.blit(renderScore, [0, 0])
+        self.display.blit(
+            render_generation, [self.width - render_generation.get_width(), 0]
+        )
         pygame.display.flip()
 
     def play_step(self, action):
         # move the snake 1 step forward
         self.current_frame += 1
 
-        self._move(action)
-        self.snake.insert(0, self.head)
+        dist_before_move = math.sqrt(
+            (self.food.x_cor - self.head.x_cor) ** 2
+            + (self.food.y_cor - self.head.y_cor) ** 2
+        )
 
+        self._move(action)
+        dist_after_move = math.sqrt(
+            (self.food.x_cor - self.head.x_cor) ** 2
+            + (self.food.y_cor - self.head.y_cor) ** 2
+        )
+
+        self.snake.insert(0, self.head)
         reward = 0
+
+        if dist_after_move < dist_before_move:
+            reward += 1
+        else:
+            reward -= 1
+
         game_over = False
 
         if self.is_death() or self.current_frame > 50 * len(self.snake):
-            #Check if dead or the game has already lasted for too long.
+            # Check if dead or the game has already lasted for too long.
 
             game_over = True
-            reward = -10
+            reward += DEATH_REWARD
 
             return reward, game_over, self.score
 
         # Move or place food
         if self.food == self.head:
             self.score += 1
-            reward = 30
+            reward += FOOD_REWARD
             self._place_food()
         else:
             self.snake.pop()
 
         self._refresh_ui()
-        self.clock.tick(snake_speed)
+        self.clock.tick(SNAKE_SPEED)
 
         return reward, game_over, self.score
-
-
-
