@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import Sequential, Input
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Dropout
 
 MEM_SIZE = 100_000
 
@@ -31,8 +31,9 @@ class Agent:
         model.add(Input(shape=(self.input_size,)))
 
         # Hidden
+        model.add(Dense(64, activation="relu"))
         model.add(Dense(128, activation="relu"))
-        model.add(Dense(128, activation="relu"))
+        model.add(Dropout(0.2))
 
         # Output
         model.add(Dense(self.output_size, activation="softmax"))

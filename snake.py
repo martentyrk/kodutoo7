@@ -7,7 +7,7 @@ import math
 
 pygame.init()
 
-DEATH_REWARD = -10
+DEATH_REWARD = -500
 FOOD_REWARD = 30
 
 
@@ -29,7 +29,7 @@ class Colors(Enum):
 
 SNAKE_SIZE = 10
 font = pygame.font.SysFont("Arial", 16)
-SNAKE_SPEED = 20
+SNAKE_SPEED = 40
 
 coordinate = namedtuple("Point", "x_cor, y_cor")
 
