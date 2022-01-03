@@ -1,0 +1,7 @@
+pygame
+random
+collections
+numpy
+math
+enum
+tensorflow
