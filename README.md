@@ -18,11 +18,11 @@ Näiteks  on seal toidu lisamine, mängulauajoonistamine ja liikumine.
 agent.py on mudel ise, mis hakkab õppima.
 
 main.py fail paneb kõik kokku, võtab agendi (mudeli) ning
-söödab talle sisse Snake() objekti, mille peal masin õppima hakkab.
+annab talle Snake() objekti, mille peal masin õppima hakkab.
 
 Algoritmile on meil hetkel pandud piiriks ette 50 ringi. Ehk maksimaalselt saab see treenida
 50 korda läbi mängides. Valisime selle arvu kuna 13 peal hakkab ta juba üsnagi
 mõistlikult mängima, kuigi arenguruumi on endiselt palju.
 
 Masin õpib läbi selle, et me anname talle punkte toidu kätte saamise eest ning karistame, kui
-uss peaks ära surema kuidagi võttes punkte maha.
+uss peaks ära surema kuidagi võttes punkte maha. Samuti saab punkte, kui uss liigub toidule lähemale ja kaotatakse punkte, kui uss liigub toidust kaugemale
