@@ -2,14 +2,14 @@
 
 7nda kodutöö jaoks loodud ussimäng, mida soovime kasutada reinforcement learningu jaoks.
 
-#Kuidas jooksutada?
+# Kuidas jooksutada?
 
 Kui jooksutate programmi eraldi virtuaalkeskkonnas, siis antud kausta sisenedes ning seejärel jooksutades 
 `pip install -r requirements.txt` peaks installima kõik vajalikud moodulid.
 
 Kui kõik moodulid, mida failides kasutatakse, on ära tõmmatud, võib käivitada main.py faili ja nautida vaatepilti.
 
-#Kirjeldus
+# Kirjeldus
 Antud repos on 3 faili, mis väärivad tähelepanu.
 
 snake.py paneb pygame'i mooduli abil käima antud mängu, ning seal on ka defineeritud kõik võimalikud tegevused mängus.
